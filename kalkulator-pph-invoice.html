@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kalkulator PPh & Invoice Generator</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    background: #f5f5f4;
+    color: #1a1a1a;
+    margin: 0;
+    padding: 24px 16px;
+  }
+  .container { max-width: 720px; margin: 0 auto; }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  .subtitle { color: #6b6b68; font-size: 14px; margin-bottom: 24px; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+  .tab-btn {
+    flex: 1; padding: 10px; border: 1px solid #d4d2c9; background: #fff;
+    border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500;
+  }
+  .tab-btn.active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+  .card {
+    background: #fff; border: 1px solid #e5e3da; border-radius: 12px;
+    padding: 20px; margin-bottom: 16px;
+  }
+  label { display: block; font-size: 13px; color: #6b6b68; margin-bottom: 4px; margin-top: 12px; }
+  label:first-child { margin-top: 0; }
+  input, select {
+    width: 100%; padding: 10px; border: 1px solid #d4d2c9; border-radius: 8px;
+    font-size: 14px; font-family: inherit;
+  }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .result-box {
+    background: #eaf3de; border-radius: 8px; padding: 16px; margin-top: 16px;
+  }
+  .result-box .label { font-size: 13px; color: #3b6d11; margin: 0 0 4px; }
+  .result-box .value { font-size: 24px; font-weight: 600; color: #173404; margin: 0; }
+  .section { display: none; }
+  .section.active { display: block; }
+  table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+  th, td { text-align: left; padding: 8px; border-bottom: 1px solid #e5e3da; font-size: 13px; }
+  th { color: #6b6b68; font-weight: 500; }
+  .item-row input { padding: 6px 8px; font-size: 13px; }
+  .btn {
+    padding: 8px 14px; border: 1px solid #d4d2c9; background: #fff; border-radius: 8px;
+    cursor: pointer; font-size: 13px; margin-top: 8px;
+  }
+  .btn-primary { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+  .total-row { font-weight: 600; font-size: 16px; margin-top: 12px; text-align: right; }
+  .invoice-preview {
+    background: #fff; border: 1px solid #e5e3da; border-radius: 12px; padding: 24px; margin-top: 16px;
+  }
+  .invoice-preview h2 { margin-top: 0; }
+  .muted { color: #6b6b68; font-size: 12px; }
+  @media print {
+    body { background: #fff; padding: 0; }
+    .tabs, .card, .btn { display: none !important; }
+    .invoice-preview { border: none; box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Kalkulator PPh & Invoice Generator</h1>
+  <p class="subtitle">Hitung PPh 21 sederhana dan buat invoice profesional secara instan.</p>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('pph')">Kalkulator PPh 21</button>
+    <button class="tab-btn" onclick="switchTab('invoice')">Buat Invoice</button>
+  </div>
+
+  <div id="pph" class="section active">
+    <div class="card">
+      <label>Penghasilan bruto per bulan (Rp)</label>
+      <input type="number" id="gross" value="8000000" oninput="calcPPh()">
+
+      <label>Status PTKP</label>
+      <select id="ptkp" onchange="calcPPh()">
+        <option value="54000000">TK/0 — Tidak Kawin, 0 Tanggungan (Rp 54.000.000/th)</option>
+        <option value="58500000">TK/1 atau K/0 (Rp 58.500.000/th)</option>
+        <option value="63000000">TK/2 atau K/1 (Rp 63.000.000/th)</option>
+        <option value="67500000">TK/3 atau K/2 (Rp 67.500.000/th)</option>
+        <option value="72000000">K/3 (Rp 72.000.000/th)</option>
+      </select>
+
+      <div class="result-box">
+        <p class="label">Estimasi PPh 21 per bulan</p>
+        <p class="value" id="pphMonthly">Rp0</p>
+        <p class="muted" style="margin-top:8px;">Estimasi PPh per tahun: <span id="pphYearly">Rp0</span></p>
+      </div>
+      <p class="muted" style="margin-top:12px;">*Perhitungan estimasi sederhana pakai tarif progresif PPh 21 (UU HPP). Untuk kasus khusus (BPJS, tunjangan, dsb) konsultasikan ke konsultan pajak.</p>
+    </div>
+  </div>
+
+  <div id="invoice" class="section">
+    <div class="card">
+      <div class="row">
+        <div>
+          <label>Nama pengirim / bisnis</label>
+          <input type="text" id="fromName" value="Nama Bisnis Kamu" oninput="renderInvoice()">
+        </div>
+        <div>
+          <label>No. invoice</label>
+          <input type="text" id="invNumber" value="INV-001" oninput="renderInvoice()">
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>Ditagihkan kepada</label>
+          <input type="text" id="toName" value="Nama Klien" oninput="renderInvoice()">
+        </div>
+        <div>
+          <label>Tanggal</label>
+          <input type="date" id="invDate" oninput="renderInvoice()">
+        </div>
+      </div>
+
+      <table id="itemsTable">
+        <thead>
+          <tr><th>Deskripsi</th><th>Qty</th><th>Harga</th><th></th></tr>
+        </thead>
+        <tbody id="itemsBody"></tbody>
+      </table>
+      <button class="btn" onclick="addItem()">+ Tambah item</button>
+
+      <div class="total-row">Total: <span id="invTotal">Rp0</span></div>
+      <button class="btn btn-primary" onclick="window.print()">Cetak / Simpan PDF</button>
+    </div>
+
+    <div class="invoice-preview" id="invoicePreview"></div>
+  </div>
+</div>
+
+<script>
+function switchTab(tab){
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(tab).classList.add('active');
+  event.target.classList.add('active');
+}
+
+function fmt(n){
+  return 'Rp' + Math.round(n).toLocaleString('id-ID');
+}
+
+function calcPPh(){
+  var gross = parseFloat(document.getElementById('gross').value) || 0;
+  var ptkp = parseFloat(document.getElementById('ptkp').value);
+  var annualGross = gross * 12;
+  var pkp = Math.max(annualGross - ptkp, 0);
+
+  var brackets = [
+    [60000000, 0.05],
+    [190000000, 0.15],
+    [250000000, 0.25],
+    [4500000000, 0.30],
+    [Infinity, 0.35]
+  ];
+  var remaining = pkp;
+  var tax = 0;
+  for(var i = 0; i < brackets.length; i++){
+    var chunk = Math.min(remaining, brackets[i][0]);
+    if(chunk <= 0) break;
+    tax += chunk * brackets[i][1];
+    remaining -= chunk;
+  }
+  document.getElementById('pphYearly').textContent = fmt(tax);
+  document.getElementById('pphMonthly').textContent = fmt(tax / 12);
+}
+
+var items = [{desc:'Jasa desain logo', qty:1, price:500000}];
+
+function renderItems(){
+  var body = document.getElementById('itemsBody');
+  body.innerHTML = '';
+  items.forEach(function(it, i){
+    var tr = document.createElement('tr');
+    tr.className = 'item-row';
+    tr.innerHTML =
+      '<td><input value="'+it.desc+'" oninput="updateItem('+i+',\'desc\',this.value)"></td>' +
+      '<td><input type="number" value="'+it.qty+'" style="width:60px" oninput="updateItem('+i+',\'qty\',this.value)"></td>' +
+      '<td><input type="number" value="'+it.price+'" oninput="updateItem('+i+',\'price\',this.value)"></td>' +
+      '<td><button class="btn" onclick="removeItem('+i+')">×</button></td>';
+    body.appendChild(tr);
+  });
+  renderInvoice();
+}
+
+function updateItem(i, field, val){
+  items[i][field] = field === 'desc' ? val : parseFloat(val) || 0;
+  renderInvoice();
+}
+function addItem(){
+  items.push({desc:'Item baru', qty:1, price:0});
+  renderItems();
+}
+function removeItem(i){
+  items.splice(i,1);
+  renderItems();
+}
+
+function renderInvoice(){
+  var total = items.reduce(function(sum, it){ return sum + it.qty * it.price; }, 0);
+  document.getElementById('invTotal').textContent = fmt(total);
+
+  var from = document.getElementById('fromName').value;
+  var to = document.getElementById('toName').value;
+  var num = document.getElementById('invNumber').value;
+  var date = document.getElementById('invDate').value || new Date().toISOString().slice(0,10);
+
+  var rows = items.map(function(it){
+    return '<tr><td style="padding:6px 0;">'+it.desc+'</td><td style="text-align:center;">'+it.qty+'</td><td style="text-align:right;">'+fmt(it.price)+'</td><td style="text-align:right;">'+fmt(it.qty*it.price)+'</td></tr>';
+  }).join('');
+
+  document.getElementById('invoicePreview').innerHTML =
+    '<h2>Invoice ' + num + '</h2>' +
+    '<p class="muted">Tanggal: ' + date + '</p>' +
+    '<p><strong>Dari:</strong> ' + from + '<br><strong>Kepada:</strong> ' + to + '</p>' +
+    '<table><thead><tr><th>Deskripsi</th><th style="text-align:center;">Qty</th><th style="text-align:right;">Harga</th><th style="text-align:right;">Subtotal</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+    '<div class="total-row">Total: ' + fmt(total) + '</div>';
+}
+
+document.getElementById('invDate').value = new Date().toISOString().slice(0,10);
+renderItems();
+calcPPh();
+</script>
+</body>
+</html>
